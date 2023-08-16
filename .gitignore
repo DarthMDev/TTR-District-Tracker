@@ -1,0 +1,12 @@
+# build directories
+dist/
+build/
+# python files to ignore
+*.pyc
+*.spec
+# mac os files
+.DS_Store
+
+# windows files
+Thumbs.db
+

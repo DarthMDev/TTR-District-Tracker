@@ -1,0 +1,79 @@
+name: "Build Toontown Rewritten District Tracker"
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+jobs:
+  build:
+    name: "Build Toontown Rewritten District Tracker"
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+        python-version: [3.11]
+      fail-fast: false
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v3
+      with:
+        python-version: 3.11
+    # Mac Build
+    - name: "Build MacOS"
+      if: matrix.os == 'macos-latest'
+      run: |
+        cd compile_scripts &&
+        bash compile_mac_universal.sh && 
+        cd .. &&
+        cd dist
+        chmod +x "./TTR-District-Tracker"
+
+       
+              
+    - name : "Upload Mac Build"
+      if: matrix.os == 'macos-latest'
+      uses: actions/upload-artifact@v2
+      with:
+        name: TTR-District-Tracker-Mac
+        path: |
+          ${{ github.workspace }}/dist/TTR-District-Tracker
+
+    # Windows Build
+    - name: "Build Windows"
+      if: matrix.os == 'windows-latest'
+      run: |
+        cd compile_scripts &&
+        # run compile.bat
+        ./compile_windows.bat
+
+    - name : "Upload Windows Build"
+      if: matrix.os == 'windows-latest'
+      uses: actions/upload-artifact@v2
+      with:
+        name: TTR-District-Tracker-Windows
+        path: |
+          ${{ github.workspace }}/dist/TTR-District-Tracker.exe
+
+
+
+    # Linux Build
+    - name: "Build Linux"
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        cd compile_scripts &&
+        bash compile_linux.sh &&
+        cd .. && 
+        cd dist
+        chmod +x "./TTR-District-Tracker"
+       
+
+    - name : "Upload Linux Build"
+      if: matrix.os == 'ubuntu-latest'
+      uses: actions/upload-artifact@v2
+      with:
+        name: TTR-District-Tracker-Linux
+        path: |
+         
+          ${{ github.workspace }}/dist/TTR-District-Tracker
+    
