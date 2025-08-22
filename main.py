@@ -1,10 +1,9 @@
-# based on https://github.com/dudeman49/TTR-District-Tracker
-# this program will read the latest log file from TTR and save the district name to a file in the same directory
+# this program will use TTR's localapi to get the toon's district and save the district name to a file in the same directory.
 import os
 import time
 import sys
-shard_indicator = "Entering shard"
-game_dir = ''
+import requests
+import random
 if sys.platform == 'win32':
     game_dir = "C:/Program Files (x86)/Toontown Rewritten"
 elif sys.platform == 'darwin':
@@ -13,67 +12,61 @@ elif sys.platform == 'darwin':
 elif sys.platform.startswith('liunx'):
     # lets just let linux users put the executable in the game directory
     game_dir = os.get_cwd()
-logs_folder = os.path.join(game_dir, "logs")
+
 district_file_path = os.path.join(game_dir, "district.txt")
-district_dictionary = {
-        5000: "Gulp Gulch" ,
-        5010: "Splashport",
-        5020: "Fizzlefield",
-        5030: "Whoosh Rapids",
-        5040: "Blam Canyon",
-        5050: "Hiccup Hills",
-        5060: "Splat Summit",
-        5070: "Thwackville",
-        5080: "Zoink Falls",
-        5090: "Kaboom Cliffs",
-        5100: "Bounceboro",
-        5110: "Boingbury",
-        5120: "Zapwood",
-        5130: "Splatville"
+api_url = "http://localhost:1547/location.json" 
+
+def generate_random_token():
+    """Generates a random session token."""
+    return ''.join(random.choices('abcdefghijklmnopqrstuvwxyz0123456789', k=32))
+authorization_token = generate_random_token()
+headers = {
+    "Host": "localhost:1547",
+    "User-Agent": "DistrictTracker/1.1",
+    "Authorization": authorization_token
 }
 
-def clear_current_console_line():
-    # clear the current console line
-    current_line_cursor = 0
-    os.system('clear' if os.name == 'posix' else 'cls')
-    print("\r", end="")
 
 def main():
-    while True:
-        # get the latest log file
-        
-       
-        # sort the log files by last modified time
-        log_files = sorted(os.listdir(logs_folder), key=lambda f: os.path.getmtime(os.path.join(logs_folder, f)), reverse=True)
-        latest_log_file = os.path.join(logs_folder, log_files[0])
-        # read the latest log file
-        with open(latest_log_file, "r") as log:
-            last_line = ""
-            for line in log:
-                # if the line contains the shard indicator, then it is the last line
-                if shard_indicator in line:
-                    last_line = line
-
-            shard_number = ""
-            if last_line:
-                # get the shard number from the last line , e.g. "Entering shard 5000"
-                shard_number = last_line.split(":vltc803af4a: Entering shard ")[1][:4]
-            else:
-                continue # keep checking 
-            # convert the shard number to an int
-            shard_number_int = int(shard_number)
-            # if the shard number is in the district dictionary, then save the district name to a file
-            if shard_number_int in district_dictionary:
-                district_name = district_dictionary[shard_number_int]
-
-                
-                with open(district_file_path, "w") as district_file:
-                    district_file.write(district_name)
-
-                clear_current_console_line()
-                print(f"{shard_number_int} = {district_name}", end="\r")
-                # make sure it stays up to date and makes sure that your CPU doesn't get too hot
-                time.sleep(1)
+    connected = False
+    # connect to the localapi
+    while not connected:
+        print("Connecting to the localapi...")
+        # try to connect to the localapi
+        try:
+            response = requests.get(api_url, headers=headers)
+            response.raise_for_status()
+            connected = True
+            break
+        except requests.RequestException as e:
+            print(f"Error connecting to the localapi: {e}")
+            print("Could not connect to the localapi. Please make sure TTR is running and Comapnion App Support is enabled")
+            connected = False
+            # if the connection fails, wait a bit and try again
+            time.sleep(5)
+    print("Connected to the localapi.")
+    while connected:
+        # grab the response again because the district can change
+        print("Fetching current district...")
+        try:
+            response = requests.get(api_url, headers=headers)
+            response.raise_for_status()
+        except requests.RequestException as e:
+            print(f"Error fetching district: {e}")
+            connected = False
+            
+        district = response.json().get("district", "Unknown")
+        print(f"Current district: {district}")
+        # save the district to a file
+        with open(district_file_path, "w") as district_file:
+            district_file.write(district)
+        print(f"District saved to {district_file_path}")
+        # wait for a bit before checking again
+        time.sleep(5)
+    # if we reach here, it means we lost connection to the localapi and we should loop back to the beginning
+    print("Lost connection to the localapi. Reconnecting...")
+    time.sleep(1)
+    main()
 
 if __name__ == "__main__":
     main()

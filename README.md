@@ -1,5 +1,5 @@
 # TTR-District-Tracker
- This program will read the latest log file from TTR and save the district name to a file in the same directory. Useful for streamers.
+ This program will use TTR's localapi to get the toon's district and save the district name to a file in the same directory. Useful for streamers.
  It is also multi platform
  
  Based on https://github.com/dudeman49/TTR-District-Tracker
